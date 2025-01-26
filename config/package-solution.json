@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "inventory-management-client-side-solution",
+    "id": "f2bfe07a-4dda-48c0-89e9-0c99cbe014e9",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true
+  },
+  "paths": {
+    "zippedPackage": "solution/inventory-management.sppkg"
+  }
+}

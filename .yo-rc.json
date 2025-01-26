@@ -1,0 +1,11 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "isCreatingSolution": true,
+    "environment": "onprem19",
+    "version": "1.10.0",
+    "libraryName": "inventory-management",
+    "libraryId": "f2bfe07a-4dda-48c0-89e9-0c99cbe014e9",
+    "packageManager": "npm",
+    "componentType": "webpart"
+  }
+}
