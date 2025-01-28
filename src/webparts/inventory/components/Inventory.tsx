@@ -1,14 +1,27 @@
 import * as React from "react";
-import Select from "react-select";
+import {
+  PrimaryButton,
+  Spinner,
+  SpinnerSize,
+  Label,
+  Dialog,
+  DialogType,
+  DialogFooter,
+  IDropdownOption,
+  DatePicker,
+} from "office-ui-fabric-react";
+import * as Select from "react-select";
+
 import { IInventoryProps } from "./IInventoryProps";
+import InventoryDropdown from "./InventoryDropdown";
+
 import {
   SPHttpClient,
   SPHttpClientBatchConfiguration,
   ISPHttpClientOptions,
   SPHttpClientBatch,
 } from "@microsoft/sp-http";
-import CustomDropdown from "./CustomDropdown";
-import { IDropdownOption } from "office-ui-fabric-react";
+
 export interface InventoryItem {
   value: any;
   itemId: string;
