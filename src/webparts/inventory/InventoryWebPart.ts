@@ -1,12 +1,7 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import { Version } from '@microsoft/sp-core-library';
-import {
-  IPropertyPaneConfiguration,
-  PropertyPaneTextField,
-  BaseClientSideWebPart,
-} from '@microsoft/sp-webpart-base';
-
+import { IPropertyPaneConfiguration, PropertyPaneTextField, BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import * as strings from 'InventoryWebPartStrings';
 import Inventory from './components/Inventory';
 import { IInventoryProps } from './components/IInventoryProps';
@@ -17,8 +12,6 @@ export interface IInventoryWebPartProps {
 
 export default class InventoryWebPart extends BaseClientSideWebPart<IInventoryWebPartProps> {
   public render(): void {
-    console.log("Resolved site URL:", this.context.pageContext.web.absoluteUrl);
-
     const element: React.ReactElement<IInventoryProps> = React.createElement(Inventory, {
       description: this.properties.description,
       context: this.context,
@@ -33,9 +26,9 @@ export default class InventoryWebPart extends BaseClientSideWebPart<IInventoryWe
     ReactDom.unmountComponentAtNode(this.domElement);
   }
 
-  // protected get dataVersion(): Version {
-  //   return Version.parse('1.0');
-  // }
+//   // protected get dataVersion(): Version {
+//   //   return Version.parse('1.0');
+//   // }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {

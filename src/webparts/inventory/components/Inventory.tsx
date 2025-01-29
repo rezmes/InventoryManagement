@@ -1,40 +1,30 @@
 import * as React from "react";
 import {
-  PrimaryButton,
-  Spinner,
-  SpinnerSize,
-  Label,
-  Dialog,
-  DialogType,
-  DialogFooter,
+  Dropdown,
   IDropdownOption,
+  TextField,
+  PrimaryButton,
   DatePicker,
 } from "office-ui-fabric-react";
-import * as Select from "react-select";
-
+import { SPHttpClient, SPHttpClientBatch } from "@microsoft/sp-http";
 import { IInventoryProps } from "./IInventoryProps";
 import InventoryDropdown from "./InventoryDropdown";
 
-import {
-  SPHttpClient,
-  SPHttpClientBatchConfiguration,
-  ISPHttpClientOptions,
-  SPHttpClientBatch,
-} from "@microsoft/sp-http";
-
 export interface InventoryItem {
-  value: any;
   itemId: string;
   quantity: number;
-  notes: string;
+  notes: string | null;
 }
 
 export interface IInventoryState {
-  transactionType: string;
+  itemOptions: IDropdownOption[];
+  selectedItem: string | number | undefined;
   formNumber: number | null;
+  transactionType: string;
   transactionDate: string;
-  items: InventoryItem[];
-  itemOptions: { value: string; label: string }[];
+  items: Array<{ itemId: number; quantity: number; notes: string }>;
+  rows: Array<{ itemId: number | null; quantity: number; notes: string }>; // Add this
+  inventoryItems: Array<{ key: number; text: string }>; // Add this if missing
   isFormActive: boolean;
 }
 
@@ -44,57 +34,57 @@ export default class Inventory extends React.Component<
 > {
   constructor(props: IInventoryProps) {
     super(props);
-
     this.state = {
       transactionType: "",
       formNumber: null,
       transactionDate: new Date().toISOString().substring(0, 10),
       items: [],
+      rows: [],
+      inventoryItems: [],
       itemOptions: [],
       isFormActive: false,
+      selectedItem: undefined,
     };
   }
 
   componentDidMount() {
-    this.fetchInventoryItems();
+    console.log("Component mounted, fetching inventory items...");
+    this.fetchInventoryItems(); // Fetch items when component mounts
   }
 
   private fetchInventoryItems = () => {
     const { spHttpClient, siteUrl } = this.props;
 
-    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryItems')/items?$select=ID,Title`;
+    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryItems')/items?$select=Title,ID`;
+
+    this.setState({ itemOptions: [] }); // Clear old options before fetch
 
     spHttpClient
       .get(url, SPHttpClient.configurations.v1)
       .then((response) => {
-        if (response.ok) {
-          return response.json();
-        } else {
+        if (!response.ok) {
           return response.json().then((error) => {
             throw new Error(`Error: ${error.error.message}`);
           });
         }
+        return response.json();
       })
       .then((data) => {
-        // console.log("API response:", data); // Log the entire response
         if (data && data.value) {
-          const options = data.value.map((item: any) => ({
-            value: item.ID,
-            label: item.Title,
+          const options: IDropdownOption[] = data.value.map((item: any) => ({
+            key: item.ID,
+            text: item.Title,
           }));
-          this.setState({ itemOptions: options });
+          console.log("Fetched options:", options); // Log fetched options
+          this.setState({ itemOptions: options }); // Set state with options
         } else {
-          throw new Error("Unexpected response structure");
+          console.warn("No inventory items found.");
+          this.setState({ itemOptions: [] }); // Handle empty response
         }
       })
       .catch((error) => {
-        console.error("There was a problem with the fetch operation:", error);
+        console.error("Error fetching inventory items:", error);
       });
-  };
-  handleTransactionTypeChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ): void => {
-    this.setState({ transactionType: event.target.value });
   };
 
   private createForm = () => {
@@ -108,60 +98,57 @@ export default class Inventory extends React.Component<
       });
   };
 
-  private getLastFormNumber = () => {
+  private getLastFormNumber = async (): Promise<number> => {
     const { spHttpClient, siteUrl } = this.props;
 
+    // REST API endpoint to get the top FormNumber in descending order
     const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=FormNumber&$orderby=FormNumber desc&$top=1`;
 
-    return spHttpClient
-      .get(url, SPHttpClient.configurations.v1)
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        } else {
-          return response.json().then((error) => {
-            throw new Error(`Error: ${error.error.message}`);
-          });
-        }
-      })
-      .then((data) => {
-        if (data && data.value && data.value.length > 0) {
-          return data.value[0].FormNumber;
-        } else {
-          return 0; // No previous form numbers, start with 0
-        }
-      });
+    try {
+      // Call the REST API using SPHttpClient
+      const response = await spHttpClient.get(
+        url,
+        SPHttpClient.configurations.v1
+      );
+
+      // Check if the response is OK
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Error: ${error.error.message}`);
+      }
+
+      // Parse the response
+      const data = await response.json();
+
+      // Return the last form number or 0 if no data is available
+      return data && data.value && data.value.length > 0
+        ? parseInt(data.value[0].FormNumber, 10) || 0
+        : 0;
+    } catch (error) {
+      console.error("Error fetching last form number:", error);
+      return 0;
+    }
   };
 
   private handleSubmit = () => {
     const { spHttpClient, siteUrl } = this.props;
     const { formNumber, transactionDate, transactionType, items } = this.state;
 
-    if (!siteUrl) {
-      console.error("Site URL is not defined");
-      return;
-    }
-
-    console.log("Submitting batch to:", `${siteUrl}/_api/$batch`);
-
-    // Initialize the batch
     const batch = spHttpClient.beginBatch();
 
-    // Iterate over items and add each one to the batch
     items.forEach((item) => {
       const body = JSON.stringify({
         FormNumber: formNumber,
         TransactionDate: transactionDate,
         TransactionType: transactionType,
-        ItemId: item.value, // Assuming "value" corresponds to an ID in the list
+        ItemId: item.itemId,
         Quantity: transactionType === "Out" ? -item.quantity : item.quantity,
-        Notes: item.notes, // Optional
+        Notes: item.notes,
       });
 
-      // Add the request to the batch
       batch.post(
         `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items`,
-        SPHttpClientBatch.configurations.v1, // Correct usage
+        SPHttpClientBatch.configurations.v1,
         {
           headers: {
             "Content-Type": "application/json",
@@ -171,120 +158,129 @@ export default class Inventory extends React.Component<
       );
     });
 
-    // Execute the batch
     batch
       .execute()
       .then(() => {
-        console.log("Batch successfully executed");
+        console.log("Items successfully added to InventoryTransaction list");
+        // Reset form or show success message
       })
       .catch((error) => {
-        console.error("Batch execution failed:", error);
+        console.error(
+          "Error adding items to InventoryTransaction list:",
+          error
+        );
       });
   };
 
-  // private handleSubmit = () => {
-  //   const { spHttpClient, siteUrl } = this.props;
-  //   const { formNumber, transactionDate, transactionType, items } = this.state;
+  private handleTransactionTypeChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    this.setState({ transactionType: event.target.value });
+  };
 
-  //   const batch = spHttpClient.beginBatch();
+  handleItemChange = (
+    event: React.FormEvent<HTMLDivElement>,
+    option: IDropdownOption | null
+  ): void => {
+    console.log("Selected option:", option);
+    this.setState({ selectedItem: option ? option.key : undefined });
+  };
 
-  //   items.forEach((item) => {
-  //     const body = JSON.stringify({
-  //       FormNumber: formNumber,
-  //       TransactionDate: transactionDate,
-  //       TransactionType: transactionType,
-  //       ItemId: item.value,
-  //       Quantity: transactionType === "Out" ? -item.quantity : item.quantity,
-  //       Notes: item.notes,
-  //     });
-  //     const batchConfig = new SPHttpClientBatchConfiguration(
-  //       SPHttpClient.configurations.v1
-  //     );
-  //     batch.post(
-  //       `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items`,
-  //       batchConfig,
-  //       {
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //         body,
-  //       }
-  //     );
-  //   });
-
-  //   batch
-  //     .execute()
-  //     .then(() => {
-  //       console.log("Items successfully added to InventoryTransaction list");
-  //       // Reset form or show success message
-  //     })
-  //     .catch((error) => {
-  //       console.error(
-  //         "Error adding items to InventoryTransaction list:",
-  //         error
-  //       );
-  //     });
-  // };
-
-  // private handleTransactionTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   this.setState({ transactionType: event.target.value });
-  // };
-
-  // private handleItemChange = (index: number, selectedOption: any) => {
-  //   const items = [...this.state.items];
-  //   items[index] = {
-  //     ...items[index],
-  //     itemId: selectedOption.value,
-  //   };
-  //   this.setState({ items });
-  // };
-
-  // private handleQuantityChange = (index: number, quantity: string) => {
-  //   const items = [...this.state.items];
-  //   items[index].quantity = parseInt(quantity, 10);
-  //   this.setState({ items });
-  // };
-
-  // private handleNotesChange = (index: number, notes: string) => {
-  //   const items = [...this.state.items];
-  //   items[index].notes = notes;
-  //   this.setState({ items });
-  // };
-
-  handleItemChange = (index: number, option?: IDropdownOption) => {
+  private handleQuantityChange = (index: number, quantity: string) => {
     const items = [...this.state.items];
-    if (option) {
-      items[index] = { ...items[index], itemId: option.key as string };
-      this.setState({ items });
+    items[index].quantity = parseInt(quantity, 10);
+    this.setState({ items });
+  };
+
+  private handleNotesChange = (index: number, notes: string) => {
+    const items = [...this.state.items];
+    items[index].notes = notes;
+    this.setState({ items });
+  };
+
+  private calculateCurrentInventory = async (
+    itemId: number
+  ): Promise<number> => {
+    const { spHttpClient, siteUrl } = this.props;
+
+    // REST API endpoint to fetch transactions for the given item
+    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=Quantity&$filter=Item/Id eq ${itemId}`;
+
+    try {
+      const response = await spHttpClient.get(
+        url,
+        SPHttpClient.configurations.v1
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Error: ${error.error.message}`);
+      }
+
+      const data = await response.json();
+
+      // Sum up the Quantity column values
+      return (
+        data.value.reduce(
+          (total: number, transaction: any) => total + transaction.Quantity,
+          0
+        ) || 0
+      );
+    } catch (error) {
+      console.error("Error calculating current inventory:", error);
+      return 0;
     }
   };
 
-  handleQuantityChange = (index: number, value: string) => {
-    const items = [...this.state.items];
-    items[index].quantity = parseInt(value, 10);
-    this.setState({ items });
+  private handleQuantity = (
+    quantity: number,
+    transactionType: string
+  ): number => {
+    return transactionType === "Out" ? -Math.abs(quantity) : Math.abs(quantity);
   };
-
-  handleNotesChange = (index: number, value: string) => {
-    const items = [...this.state.items];
-    items[index].notes = value;
-    this.setState({ items });
+  private addRow = () => {
+    this.setState((prevState) => ({
+      rows: [
+        ...prevState.rows,
+        {
+          itemId: null,
+          quantity: 0,
+          notes: "",
+        },
+      ],
+    }));
+  };
+  private removeRow = (index: number) => {
+    this.setState((prevState) => ({
+      rows: prevState.rows.filter((_, i) => i !== index),
+    }));
+  };
+  private handleRowChange = (index: number, field: string, value: any) => {
+    const rows = [...this.state.rows]; // Copy current rows
+    rows[index] = {
+      ...rows[index],
+      [field]: value, // Update the specific field (itemId, quantity, or notes)
+    };
+    this.setState({ rows }); // Update the state with the modified rows
   };
 
   render() {
     const { description } = this.props;
     const {
+      itemOptions,
+      selectedItem,
       transactionType,
       formNumber,
       transactionDate,
       items,
-      itemOptions,
       isFormActive,
     } = this.state;
-
+    const isRtl = this.props.context.pageContext.cultureInfo.isRightToLeft;
+    const hasValidOptions = itemOptions.length > 0;
     return (
-      <div>
-        <h1>{description}</h1>
+      <div dir={isRtl ? "rtl" : "ltr"}>
+        <h1>{this.props.description}</h1>
+
         <div>
           <label>
             <input
@@ -304,9 +300,9 @@ export default class Inventory extends React.Component<
             />{" "}
             Out
           </label>
-          <button disabled={!transactionType} onClick={this.createForm}>
+          <PrimaryButton disabled={!transactionType} onClick={this.createForm}>
             Create Form
-          </button>
+          </PrimaryButton>
         </div>
 
         {isFormActive && (
@@ -314,188 +310,135 @@ export default class Inventory extends React.Component<
             <h3>Form Number: {formNumber}</h3>
             <div>
               <label>Date:</label>
-              <input
-                type="date"
-                value={transactionDate}
-                onChange={(e) =>
-                  this.setState({ transactionDate: e.target.value })
+              <DatePicker
+                value={new Date(transactionDate)}
+                onSelectDate={(date) =>
+                  this.setState({
+                    transactionDate: date
+                      ? date.toISOString().substring(0, 10)
+                      : "",
+                  })
                 }
               />
             </div>
-            <div>
-              {items.map((item, index) => (
-                <div key={index}>
-                  <Select
-                    name={`item-${index}`}
-                    value={itemOptions.filter(
-                      (option) => option.value === item.itemId
-                    )}
-                    options={itemOptions}
-                    onChange={(selectedOption) =>
-                      this.handleItemChange(index, selectedOption)
-                    }
-                  />
-                  <input
-                    type="number"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      this.handleQuantityChange(index, e.target.value)
-                    }
-                  />
-                  <input
-                    type="text"
-                    value={item.notes}
-                    onChange={(e) =>
-                      this.handleNotesChange(index, e.target.value)
-                    }
-                  />
-                </div>
-              ))}
-              <button onClick={this.handleSubmit}>Submit</button>
-            </div>
+            {/* <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Quantity</th>
+                  <th>Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {this.state.rows.map((row, index) => (
+                  <tr key={index}>
+                    <td>
+                      <InventoryDropdown
+                        items={this.state.itemOptions} // Dropdown options
+                        selectedItem={row.itemId} // Current row's selected item
+                        onChange={(option) =>
+                          this.handleRowChange(index, "itemId", option.key)
+                        } // Update row data
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        value={row.quantity}
+                        onChange={(event) =>
+                          this.handleRowChange(
+                            index,
+                            "quantity",
+                            parseInt(event.target.value, 10)
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={row.notes}
+                        onChange={(event) =>
+                          this.handleRowChange(
+                            index,
+                            "notes",
+                            event.target.value
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <button onClick={() => this.removeRow(index)}>
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table> */}
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Quantity</th>
+                  <th>Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {this.state.rows.map((row, index) => (
+                  <tr key={index}>
+                    <td>
+                      <InventoryDropdown
+                        items={this.state.itemOptions}
+                        selectedItem={row.itemId}
+                        onChange={(option) =>
+                          this.handleRowChange(index, "itemId", option.key)
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        value={row.quantity}
+                        onChange={(event) =>
+                          this.handleRowChange(
+                            index,
+                            "quantity",
+                            parseInt(event.target.value, 10)
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={row.notes}
+                        onChange={(event) =>
+                          this.handleRowChange(
+                            index,
+                            "notes",
+                            event.target.value
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <button onClick={() => this.removeRow(index)}>
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* <button onClick={this.addRow}>Add Row</button>
+            <button onClick={this.handleSubmit}>Submit</button> */}
           </div>
         )}
       </div>
     );
   }
-
-  // createForm = () => {
-  //   this.getLastFormNumber()
-  //     .then((lastFormNumber) => {
-  //       this.setState({
-  //         formNumber: lastFormNumber + 1,
-  //         isFormActive: true,
-  //       });
-  //     })
-  //     .catch((error) =>
-  //       console.error("Error fetching last form number:", error)
-  //     );
-  // };
-
-  // getLastFormNumber = () => {
-  //   return fetch(
-  //     `${this.props.siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=FormNumber&$orderby=FormNumber desc&$top=1`,
-  //     {
-  //       headers: {
-  //         Accept: "application/json;odata=verbose",
-  //       },
-  //       credentials: "same-origin",
-  //     }
-  //   )
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       const items = data.d.results;
-  //       return items.length > 0 ? items[0].FormNumber : 0;
-  //     });
-  // };
-
-  // addItem = () => {
-  //   const items = [...this.state.items, { itemId: "", quantity: 0, notes: "" }];
-  //   this.setState({ items });
-  // };
-
-  // removeItem = (index: number) => {
-  //   const items = this.state.items.slice();
-  //   items.splice(index, 1);
-  //   this.setState({ items });
-  // };
-
-  // handleItemChange = (
-  //   index: number,
-  //   option: { value: string; label: string }
-  // ) => {
-  //   const items = [...this.state.items];
-  //   items[index].itemId = option.value;
-  //   this.setState({ items });
-  // };
-
-  // handleQuantityChange = (
-  //   index: number,
-  //   event: React.ChangeEvent<HTMLInputElement>
-  // ) => {
-  //   const items = [...this.state.items];
-  //   items[index].quantity = parseInt(event.target.value, 10) || 0;
-  //   this.setState({ items });
-  // };
-
-  // render() {
-  //   const {
-  //     transactionType,
-  //     formNumber,
-  //     transactionDate,
-  //     items,
-  //     itemOptions,
-  //     isFormActive,
-  //   } = this.state;
-
-  //   return (
-  //     <div>
-  //       <div>
-  //         <h1>{this.props.description}</h1>
-  //       </div>
-  //       <div>
-  //         <label>
-  //           <input
-  //             type="radio"
-  //             value="In"
-  //             checked={transactionType === "In"}
-  //             onChange={this.handleTransactionTypeChange}
-  //           />{" "}
-  //           In
-  //         </label>
-  //         <label>
-  //           <input
-  //             type="radio"
-  //             value="Out"
-  //             checked={transactionType === "Out"}
-  //             onChange={this.handleTransactionTypeChange}
-  //           />{" "}
-  //           Out
-  //         </label>
-  //         <button disabled={!transactionType} onClick={this.createForm}>
-  //           Create Form
-  //         </button>
-  //       </div>
-
-  //       {isFormActive && (
-  //         <div>
-  //           <h3>Form Number: {formNumber}</h3>
-  //           <div>
-  //             <label>Date:</label>
-  //             <input
-  //               type="date"
-  //               value={transactionDate}
-  //               onChange={(e) =>
-  //                 this.setState({ transactionDate: e.target.value })
-  //               }
-  //             />
-  //           </div>
-  //           <div>
-  //             {items.map((item, index) => (
-  //               <div key={index}>
-  //                 <Select
-  //                   name={`item-${index}`}
-  //                   value={
-  //                     itemOptions.filter(
-  //                       (option) => option.value === item.itemId
-  //                     )[0] || null
-  //                   }
-  //                   options={itemOptions}
-  //                   onChange={(option) => this.handleItemChange(index, option)}
-  //                 />
-  //                 <input
-  //                   type="number"
-  //                   value={item.quantity}
-  //                   onChange={(e) => this.handleQuantityChange(index, e)}
-  //                 />
-  //                 <button onClick={() => this.removeItem(index)}>Remove</button>
-  //               </div>
-  //             ))}
-  //             <button onClick={this.addItem}>Add Item</button>
-  //           </div>
-  //         </div>
-  //       )}
-  //     </div>
-  //   );
-  // }
 }
