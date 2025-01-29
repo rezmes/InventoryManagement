@@ -134,6 +134,12 @@ export default class Inventory extends React.Component<
     const { spHttpClient, siteUrl } = this.props;
     const { formNumber, transactionDate, transactionType, items } = this.state;
 
+    if (!siteUrl) {
+      // Show an error message to the user (e.g., in a modal or alert)
+      alert("Site URL is not defined. Please contact your administrator.");
+      return;
+    }
+
     const batch = spHttpClient.beginBatch();
 
     items.forEach((item) => {
@@ -434,8 +440,8 @@ export default class Inventory extends React.Component<
               </tbody>
             </table>
 
-            {/* <button onClick={this.addRow}>Add Row</button>
-            <button onClick={this.handleSubmit}>Submit</button> */}
+            <button onClick={this.addRow}>Add Row</button>
+            <button onClick={this.handleSubmit}>Submit</button>
           </div>
         )}
       </div>
