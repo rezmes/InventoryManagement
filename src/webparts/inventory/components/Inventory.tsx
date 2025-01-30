@@ -120,63 +120,7 @@ export default class Inventory extends React.Component<IInventoryProps, IInvento
     }
   };
 
-  //  private handleSubmit = async () => {
-    // const { context, siteUrl, transactionListName } = this.props;
-    // const { rows, formNumber, transactionType, transactionDate } = this.state;
-
-  //   try {
-      // // Get request digest
-      // const digestResponse = await fetch(`${siteUrl}/_api/contextinfo`, {
-      //   method: "POST",
-      //   headers: { Accept: "application/json;odata=verbose" },
-      // });
-      // const digestData = await digestResponse.json();
-      // const requestDigest = digestData.d.GetContextWebInformation.FormDigestValue;
-
-  //     // Create an array of fetch requests
-  //     const requests = rows.map((row) => {
-  //       const item = {
-  //         __metadata: { type: "SP.Data.InventoryTransactionListItem" },
-  //         FormNumber: formNumber,
-  //         ItemNameId: row.itemId, // Use the ID of the selected item for the lookup column
-  //         Quantity: row.quantity,
-  //         Notes: row.notes,
-  //         TransactionType: transactionType,
-  //         TransactionDate: transactionDate,
-  //       };
-
-  //       return fetch(
-  //         `${siteUrl}/_api/web/lists/getbytitle('${transactionListName}')/items`,
-  //         {
-  //           method: "POST",
-  //           headers: {
-  //             Accept: "application/json;odata=verbose",
-  //             "Content-Type": "application/json;odata=verbose",
-  //             "X-RequestDigest": requestDigest,
-  //           },
-  //           body: JSON.stringify(item),
-  //         }
-  //       );
-  //     });
-
-  //     // Execute all requests concurrently
-  //     const responses = await Promise.all(requests);
-
-  //     // Check for errors
-  //     for (const response of responses) {
-  //       if (!response.ok) {
-  //         const errorText = await response.text();
-  //         throw new Error(errorText);
-  //       }
-  //     }
-
-  //     console.log("All requests successful!");
-  //   } catch (error) {
-  //     console.error("Error submitting transactions:", error);
-  //   }
-  // };
-
-  private handleSubmit = async () => {
+   private handleSubmit = async () => {
     const { context, siteUrl, transactionListName } = this.props;
     const { rows, formNumber, transactionType, transactionDate } = this.state;
 
@@ -189,33 +133,89 @@ export default class Inventory extends React.Component<IInventoryProps, IInvento
       const digestData = await digestResponse.json();
       const requestDigest = digestData.d.GetContextWebInformation.FormDigestValue;
 
-      // Calculate current inventory for each item
-      const items = this.state.rows.map((row) => row.itemId);
-      const currentInventories = await Promise.all(items.map((itemId) => this.calculateCurrentInventory(itemId)));
+      // Create an array of fetch requests
+      const requests = rows.map((row) => {
+        const item = {
+          __metadata: { type: "SP.Data.InventoryTransactionListItem" },
+          FormNumber: formNumber,
+          ItemNameId: row.itemId, // Use the ID of the selected item for the lookup column
+          Quantity: row.quantity,
+          Notes: row.notes,
+          TransactionType: transactionType,
+          TransactionDate: transactionDate,
+        };
 
-      // Update InventoryStatus column in InventoryTransaction list
-      const requests = currentInventories.map((currentInventory, index) => {
-        const itemId = items[index];
-        const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=InventoryStatus&$filter=ItemId eq ${itemId}`;
-        const body = JSON.stringify({ InventoryStatus: currentInventory });
-        return fetch(url, {
-          method: "POST",
-          headers: {
-            Accept: "application/json;odata=verbose",
-            "Content-Type": "application/json;odata=verbose",
-          },
-          body,
-        });
+        return fetch(
+          `${siteUrl}/_api/web/lists/getbytitle('${transactionListName}')/items`,
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/json;odata=verbose",
+              "Content-Type": "application/json;odata=verbose",
+              "X-RequestDigest": requestDigest,
+            },
+            body: JSON.stringify(item),
+          }
+        );
       });
 
       // Execute all requests concurrently
-      await Promise.all(requests);
+      const responses = await Promise.all(requests);
+
+      // Check for errors
+      for (const response of responses) {
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText);
+        }
+      }
 
       console.log("All requests successful!");
     } catch (error) {
       console.error("Error submitting transactions:", error);
     }
   };
+
+  // private handleSubmit = async () => {
+  //   const { context, siteUrl, transactionListName } = this.props;
+  //   const { rows, formNumber, transactionType, transactionDate } = this.state;
+
+  //   try {
+  //     // Get request digest
+  //     const digestResponse = await fetch(`${siteUrl}/_api/contextinfo`, {
+  //       method: "POST",
+  //       headers: { Accept: "application/json;odata=verbose" },
+  //     });
+  //     const digestData = await digestResponse.json();
+  //     const requestDigest = digestData.d.GetContextWebInformation.FormDigestValue;
+
+  //     // Calculate current inventory for each item
+  //     const items = this.state.rows.map((row) => row.itemId);
+  //     const currentInventories = await Promise.all(items.map((itemId) => this.calculateCurrentInventory(itemId)));
+
+  //     // Update InventoryStatus column in InventoryTransaction list
+  //     const requests = currentInventories.map((currentInventory, index) => {
+  //       const itemId = items[index];
+  //       const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=InventoryStatus&$filter=ItemId eq ${itemId}`;
+  //       const body = JSON.stringify({ InventoryStatus: currentInventory });
+  //       return fetch(url, {
+  //         method: "POST",
+  //         headers: {
+  //           Accept: "application/json;odata=verbose",
+  //           "Content-Type": "application/json;odata=verbose",
+  //         },
+  //         body,
+  //       });
+  //     });
+
+  //     // Execute all requests concurrently
+  //     await Promise.all(requests);
+
+  //     console.log("All requests successful!");
+  //   } catch (error) {
+  //     console.error("Error submitting transactions:", error);
+  //   }
+  // };
 
   private handleTransactionTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ transactionType: event.target.value });
