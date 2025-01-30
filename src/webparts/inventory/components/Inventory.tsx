@@ -23,15 +23,12 @@ export interface IInventoryState {
   transactionType: string;
   transactionDate: string;
   items: Array<{ itemId: number; quantity: number; notes: string }>;
-  rows: Array<{ itemId: number | null; quantity: number; notes: string }>; // Add this
-  inventoryItems: Array<{ key: number; text: string }>; // Add this if missing
+  rows: Array<{ itemId: number | null; quantity: number; notes: string }>;
+  inventoryItems: Array<{ key: number; text: string }>;
   isFormActive: boolean;
 }
 
-export default class Inventory extends React.Component<
-  IInventoryProps,
-  IInventoryState
-> {
+export default class Inventory extends React.Component<IInventoryProps, IInventoryState> {
   constructor(props: IInventoryProps) {
     super(props);
     this.state = {
@@ -49,7 +46,7 @@ export default class Inventory extends React.Component<
 
   componentDidMount() {
     console.log("Component mounted, fetching inventory items...");
-    this.fetchInventoryItems(); // Fetch items when component mounts
+    this.fetchInventoryItems();
   }
 
   private fetchInventoryItems = () => {
@@ -57,7 +54,7 @@ export default class Inventory extends React.Component<
 
     const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryItems')/items?$select=Title,ID`;
 
-    this.setState({ itemOptions: [] }); // Clear old options before fetch
+    this.setState({ itemOptions: [] });
 
     spHttpClient
       .get(url, SPHttpClient.configurations.v1)
@@ -75,11 +72,11 @@ export default class Inventory extends React.Component<
             key: item.ID,
             text: item.Title,
           }));
-          console.log("Fetched options:", options); // Log fetched options
-          this.setState({ itemOptions: options }); // Set state with options
+          console.log("Fetched options:", options);
+          this.setState({ itemOptions: options });
         } else {
           console.warn("No inventory items found.");
-          this.setState({ itemOptions: [] }); // Handle empty response
+          this.setState({ itemOptions: [] });
         }
       })
       .catch((error) => {
@@ -101,26 +98,19 @@ export default class Inventory extends React.Component<
   private getLastFormNumber = async (): Promise<number> => {
     const { spHttpClient, siteUrl } = this.props;
 
-    // REST API endpoint to get the top FormNumber in descending order
+
     const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=FormNumber&$orderby=FormNumber desc&$top=1`;
 
     try {
-      // Call the REST API using SPHttpClient
-      const response = await spHttpClient.get(
-        url,
-        SPHttpClient.configurations.v1
-      );
+      const response = await spHttpClient.get(url, SPHttpClient.configurations.v1);
 
-      // Check if the response is OK
       if (!response.ok) {
         const error = await response.json();
         throw new Error(`Error: ${error.error.message}`);
       }
 
-      // Parse the response
       const data = await response.json();
 
-      // Return the last form number or 0 if no data is available
       return data && data.value && data.value.length > 0
         ? parseInt(data.value[0].FormNumber, 10) || 0
         : 0;
@@ -130,64 +120,108 @@ export default class Inventory extends React.Component<
     }
   };
 
-  private handleSubmit = () => {
-    const { spHttpClient, siteUrl } = this.props;
-    const { formNumber, transactionDate, transactionType, items } = this.state;
+  //  private handleSubmit = async () => {
+    // const { context, siteUrl, transactionListName } = this.props;
+    // const { rows, formNumber, transactionType, transactionDate } = this.state;
 
-    if (!siteUrl) {
-      // Show an error message to the user (e.g., in a modal or alert)
-      alert("Site URL is not defined. Please contact your administrator.");
-      return;
-    }
+  //   try {
+      // // Get request digest
+      // const digestResponse = await fetch(`${siteUrl}/_api/contextinfo`, {
+      //   method: "POST",
+      //   headers: { Accept: "application/json;odata=verbose" },
+      // });
+      // const digestData = await digestResponse.json();
+      // const requestDigest = digestData.d.GetContextWebInformation.FormDigestValue;
 
-    const batch = spHttpClient.beginBatch();
+  //     // Create an array of fetch requests
+  //     const requests = rows.map((row) => {
+  //       const item = {
+  //         __metadata: { type: "SP.Data.InventoryTransactionListItem" },
+  //         FormNumber: formNumber,
+  //         ItemNameId: row.itemId, // Use the ID of the selected item for the lookup column
+  //         Quantity: row.quantity,
+  //         Notes: row.notes,
+  //         TransactionType: transactionType,
+  //         TransactionDate: transactionDate,
+  //       };
 
-    items.forEach((item) => {
-      const body = JSON.stringify({
-        FormNumber: formNumber,
-        TransactionDate: transactionDate,
-        TransactionType: transactionType,
-        ItemId: item.itemId,
-        Quantity: transactionType === "Out" ? -item.quantity : item.quantity,
-        Notes: item.notes,
+  //       return fetch(
+  //         `${siteUrl}/_api/web/lists/getbytitle('${transactionListName}')/items`,
+  //         {
+  //           method: "POST",
+  //           headers: {
+  //             Accept: "application/json;odata=verbose",
+  //             "Content-Type": "application/json;odata=verbose",
+  //             "X-RequestDigest": requestDigest,
+  //           },
+  //           body: JSON.stringify(item),
+  //         }
+  //       );
+  //     });
+
+  //     // Execute all requests concurrently
+  //     const responses = await Promise.all(requests);
+
+  //     // Check for errors
+  //     for (const response of responses) {
+  //       if (!response.ok) {
+  //         const errorText = await response.text();
+  //         throw new Error(errorText);
+  //       }
+  //     }
+
+  //     console.log("All requests successful!");
+  //   } catch (error) {
+  //     console.error("Error submitting transactions:", error);
+  //   }
+  // };
+
+  private handleSubmit = async () => {
+    const { context, siteUrl, transactionListName } = this.props;
+    const { rows, formNumber, transactionType, transactionDate } = this.state;
+
+    try {
+      // Get request digest
+      const digestResponse = await fetch(`${siteUrl}/_api/contextinfo`, {
+        method: "POST",
+        headers: { Accept: "application/json;odata=verbose" },
       });
+      const digestData = await digestResponse.json();
+      const requestDigest = digestData.d.GetContextWebInformation.FormDigestValue;
 
-      batch.post(
-        `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items`,
-        SPHttpClientBatch.configurations.v1,
-        {
+      // Calculate current inventory for each item
+      const items = this.state.rows.map((row) => row.itemId);
+      const currentInventories = await Promise.all(items.map((itemId) => this.calculateCurrentInventory(itemId)));
+
+      // Update InventoryStatus column in InventoryTransaction list
+      const requests = currentInventories.map((currentInventory, index) => {
+        const itemId = items[index];
+        const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=InventoryStatus&$filter=ItemId eq ${itemId}`;
+        const body = JSON.stringify({ InventoryStatus: currentInventory });
+        return fetch(url, {
+          method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            Accept: "application/json;odata=verbose",
+            "Content-Type": "application/json;odata=verbose",
           },
           body,
-        }
-      );
-    });
-
-    batch
-      .execute()
-      .then(() => {
-        console.log("Items successfully added to InventoryTransaction list");
-        // Reset form or show success message
-      })
-      .catch((error) => {
-        console.error(
-          "Error adding items to InventoryTransaction list:",
-          error
-        );
+        });
       });
+
+      // Execute all requests concurrently
+      await Promise.all(requests);
+
+      console.log("All requests successful!");
+    } catch (error) {
+      console.error("Error submitting transactions:", error);
+    }
   };
 
-  private handleTransactionTypeChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  private handleTransactionTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ transactionType: event.target.value });
   };
 
-  handleItemChange = (
-    event: React.FormEvent<HTMLDivElement>,
-    option: IDropdownOption | null
-  ): void => {
+  handleItemChange = (event: React.FormEvent<HTMLDivElement>, option: IDropdownOption | null): void => {
     console.log("Selected option:", option);
     this.setState({ selectedItem: option ? option.key : undefined });
   };
@@ -204,19 +238,13 @@ export default class Inventory extends React.Component<
     this.setState({ items });
   };
 
-  private calculateCurrentInventory = async (
-    itemId: number
-  ): Promise<number> => {
+  private calculateCurrentInventory = async (itemId: number): Promise<number> => {
     const { spHttpClient, siteUrl } = this.props;
 
-    // REST API endpoint to fetch transactions for the given item
-    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=Quantity&$filter=Item/Id eq ${itemId}`;
+    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=Quantity&$filter=ItemId eq ${itemId}`;
 
     try {
-      const response = await spHttpClient.get(
-        url,
-        SPHttpClient.configurations.v1
-      );
+      const response = await spHttpClient.get(url, SPHttpClient.configurations.v1);
 
       if (!response.ok) {
         const error = await response.json();
@@ -225,25 +253,39 @@ export default class Inventory extends React.Component<
 
       const data = await response.json();
 
-      // Sum up the Quantity column values
-      return (
-        data.value.reduce(
-          (total: number, transaction: any) => total + transaction.Quantity,
-          0
-        ) || 0
-      );
+      return data.value.reduce((total: number, transaction: any) => total + transaction.Quantity, 0);
     } catch (error) {
       console.error("Error calculating current inventory:", error);
       return 0;
     }
   };
 
-  private handleQuantity = (
-    quantity: number,
-    transactionType: string
-  ): number => {
+  // private calculateCurrentInventory = async (itemId: number): Promise<number> => {
+  //   const { spHttpClient, siteUrl } = this.props;
+
+  //   const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=Quantity&$filter=ItemId eq ${itemId}`;
+
+  //   try {
+  //     const response = await spHttpClient.get(url, SPHttpClient.configurations.v1);
+
+  //     if (!response.ok) {
+  //       const error = await response.json();
+  //       throw new Error(`Error: ${error.error.message}`);
+  //     }
+
+  //     const data = await response.json();
+
+  //     return data.value.reduce((total: number, transaction: any) => total + transaction.Quantity, 0);
+  //   } catch (error) {
+  //     console.error("Error calculating current inventory:", error);
+  //     return 0;
+  //   }
+  // };
+
+  private handleQuantity = (quantity: number, transactionType: string): number => {
     return transactionType === "Out" ? -Math.abs(quantity) : Math.abs(quantity);
   };
+
   private addRow = () => {
     this.setState((prevState) => ({
       rows: [
@@ -256,18 +298,20 @@ export default class Inventory extends React.Component<
       ],
     }));
   };
+
   private removeRow = (index: number) => {
     this.setState((prevState) => ({
       rows: prevState.rows.filter((_, i) => i !== index),
     }));
   };
+
   private handleRowChange = (index: number, field: string, value: any) => {
-    const rows = [...this.state.rows]; // Copy current rows
+    const rows = [...this.state.rows];
     rows[index] = {
       ...rows[index],
-      [field]: value, // Update the specific field (itemId, quantity, or notes)
+      [field]: value,
     };
-    this.setState({ rows }); // Update the state with the modified rows
+    this.setState({ rows });
   };
 
   render() {
@@ -283,6 +327,7 @@ export default class Inventory extends React.Component<
     } = this.state;
     const isRtl = this.props.context.pageContext.cultureInfo.isRightToLeft;
     const hasValidOptions = itemOptions.length > 0;
+
     return (
       <div dir={isRtl ? "rtl" : "ltr"}>
         <h1>{this.props.description}</h1>
@@ -320,69 +365,11 @@ export default class Inventory extends React.Component<
                 value={new Date(transactionDate)}
                 onSelectDate={(date) =>
                   this.setState({
-                    transactionDate: date
-                      ? date.toISOString().substring(0, 10)
-                      : "",
+                    transactionDate: date ? date.toISOString().substring(0, 10) : "",
                   })
                 }
               />
             </div>
-            {/* <table>
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Quantity</th>
-                  <th>Notes</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {this.state.rows.map((row, index) => (
-                  <tr key={index}>
-                    <td>
-                      <InventoryDropdown
-                        items={this.state.itemOptions} // Dropdown options
-                        selectedItem={row.itemId} // Current row's selected item
-                        onChange={(option) =>
-                          this.handleRowChange(index, "itemId", option.key)
-                        } // Update row data
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={row.quantity}
-                        onChange={(event) =>
-                          this.handleRowChange(
-                            index,
-                            "quantity",
-                            parseInt(event.target.value, 10)
-                          )
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={row.notes}
-                        onChange={(event) =>
-                          this.handleRowChange(
-                            index,
-                            "notes",
-                            event.target.value
-                          )
-                        }
-                      />
-                    </td>
-                    <td>
-                      <button onClick={() => this.removeRow(index)}>
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table> */}
             <table>
               <thead>
                 <tr>

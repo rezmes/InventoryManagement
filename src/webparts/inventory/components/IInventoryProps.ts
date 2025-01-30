@@ -6,5 +6,7 @@ export interface IInventoryProps {
   context: WebPartContext;
   spHttpClient: SPHttpClient;
   siteUrl: string;
+  inventoryListName: string; // Add this
+  transactionListName: string; // Add this
 }
 

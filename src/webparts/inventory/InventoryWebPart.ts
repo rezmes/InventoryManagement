@@ -17,6 +17,8 @@ export default class InventoryWebPart extends BaseClientSideWebPart<IInventoryWe
       context: this.context,
       spHttpClient: this.context.spHttpClient,
       siteUrl: this.context.pageContext.web.absoluteUrl,
+      inventoryListName: "InventoryItems", // Add this
+      transactionListName: "InventoryTransaction", // Add this
     });
 
     ReactDom.render(element, this.domElement);

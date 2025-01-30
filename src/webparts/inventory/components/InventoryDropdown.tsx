@@ -5,23 +5,14 @@ export interface IInventoryDropdownProps {
   items: IDropdownOption[];
   selectedItem: string | number | undefined;
   onChange: (option?: IDropdownOption) => void;
+  placeholder?: string;
 }
 
 class InventoryDropdown extends React.Component<IInventoryDropdownProps, {}> {
-  handleChange = (
-    event?: React.FormEvent<HTMLDivElement>,
-    option?: IDropdownOption
-  ): void => {
-    if (option) {
-      this.props.onChange(option);
-    }
-  };
+  public render(): React.ReactElement<IInventoryDropdownProps> {
+    const { items, selectedItem, onChange, placeholder } = this.props;
+    const placeHolderText = placeholder || "Select an item";
 
-  render() {
-    const { items, selectedItem, onChange } = this.props;
-    const placeHolderText =
-      items.length === 0 ? "No items available" : "Select an item";
-    console.log("Dropdown props:", this.props); // Log props
     return (
       <Dropdown
         placeHolder={placeHolderText}
