@@ -290,7 +290,8 @@ export default class Inventory extends React.Component<
             </div>
             <div>
               <label>
-                {strings.TransactionType}: {transactionType}
+                {strings.TransactionType}:{" "}
+                {transactionType === "In" ? strings.In : strings.Out}
               </label>
             </div>
             <table>

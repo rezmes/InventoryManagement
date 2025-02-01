@@ -5,7 +5,7 @@ define([], function () {
     DescriptionFieldLabel: "فیلد توضیحات",
     InventoryItemsListNameLabel: "نام لیست کالاهای موجود",
     InventoryTransactionListNameLabel: "نام لیست ورود و خروج موجودی",
-    InventoryManagement: "مدیریت موجودی",
+    InventoryManagement: "مدیریت موجودی انبار",
     CreateForm: "ایجاد فرم",
     Date: "تاریخ",
     FormNumber: "شماره فرم",
