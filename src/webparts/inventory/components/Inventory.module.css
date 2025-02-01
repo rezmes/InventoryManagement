@@ -108,3 +108,7 @@
   vertical-align: top;
   display: inline-block;
 }/*# sourceMappingURL=Inventory.module.css.map */
+
+.required {
+  color: red;
+}
