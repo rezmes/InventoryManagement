@@ -10,6 +10,11 @@ import { SPHttpClient, SPHttpClientBatch } from "@microsoft/sp-http";
 import { IInventoryProps } from "./IInventoryProps";
 import InventoryDropdown from "./InventoryDropdown";
 
+import {
+  DEFAULT_INVENTORY_ITEMS_LIST_NAME,
+  DEFAULT_INVENTORY_TRANSACTION_LIST_NAME,
+} from "./config";
+
 export interface InventoryItem {
   itemId: string;
   quantity: number;
@@ -53,9 +58,13 @@ export default class Inventory extends React.Component<
   }
 
   private fetchInventoryItems = () => {
-    const { spHttpClient, siteUrl } = this.props;
+    const {
+      spHttpClient,
+      siteUrl,
+      inventoryItemsListName = DEFAULT_INVENTORY_ITEMS_LIST_NAME,
+    } = this.props;
 
-    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryItems')/items?$select=Title,ID`;
+    const url = `${siteUrl}/_api/web/lists/GetByTitle('${inventoryItemsListName}')/items?$select=Title,ID`;
 
     this.setState({ itemOptions: [] });
 
@@ -99,9 +108,13 @@ export default class Inventory extends React.Component<
   };
 
   private getLastFormNumber = async (): Promise<number> => {
-    const { spHttpClient, siteUrl } = this.props;
+    const {
+      spHttpClient,
+      siteUrl,
+      inventoryTransactionListName = DEFAULT_INVENTORY_TRANSACTION_LIST_NAME,
+    } = this.props;
 
-    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=FormNumber&$orderby=FormNumber desc&$top=1`;
+    const url = `${siteUrl}/_api/web/lists/GetByTitle('${inventoryTransactionListName}')/items?$select=FormNumber&$orderby=FormNumber desc&$top=1`;
 
     try {
       const response = await spHttpClient.get(
@@ -124,10 +137,13 @@ export default class Inventory extends React.Component<
       return 0;
     }
   };
-  private getItemTitle = async (itemId: number): Promise<string> => {
+  private getItemTitle = async (
+    itemId: number,
+    inventoryItemsListName = DEFAULT_INVENTORY_ITEMS_LIST_NAME
+  ): Promise<string> => {
     const { spHttpClient, siteUrl } = this.props;
 
-    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryItems')/items(${itemId})?$select=Title`;
+    const url = `${siteUrl}/_api/web/lists/GetByTitle('${inventoryItemsListName}')/items(${itemId})?$select=Title`;
 
     try {
       const response = await spHttpClient.get(
@@ -149,7 +165,11 @@ export default class Inventory extends React.Component<
   };
 
   private handleSubmit = async () => {
-    const { context, siteUrl, transactionListName } = this.props;
+    const {
+      context,
+      siteUrl,
+      inventoryTransactionListName = DEFAULT_INVENTORY_TRANSACTION_LIST_NAME,
+    } = this.props;
     const { rows, formNumber, transactionType, transactionDate } = this.state;
 
     try {
@@ -178,7 +198,7 @@ export default class Inventory extends React.Component<
           };
 
           return fetch(
-            `${siteUrl}/_api/web/lists/getbytitle('${transactionListName}')/items`,
+            `${siteUrl}/_api/web/lists/getbytitle('${inventoryTransactionListName}')/items`,
             {
               method: "POST",
               headers: {
@@ -253,9 +273,13 @@ export default class Inventory extends React.Component<
   private calculateCurrentInventory = async (
     itemId: number
   ): Promise<number> => {
-    const { spHttpClient, siteUrl } = this.props;
+    const {
+      spHttpClient,
+      siteUrl,
+      inventoryTransactionListName = DEFAULT_INVENTORY_TRANSACTION_LIST_NAME,
+    } = this.props;
 
-    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=Quantity&$filter=ItemId eq ${itemId}`;
+    const url = `${siteUrl}/_api/web/lists/GetByTitle('${inventoryTransactionListName}')/items?$select=Quantity&$filter=ItemId eq ${itemId}`;
 
     try {
       const response = await spHttpClient.get(

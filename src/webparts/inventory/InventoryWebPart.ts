@@ -7,6 +7,8 @@ import Inventory from './components/Inventory';
 import { IInventoryProps } from './components/IInventoryProps';
 
 export interface IInventoryWebPartProps {
+  inventoryTransactionListName: string;
+  inventoryItemsListName: string;
   description: string;
 }
 
@@ -17,8 +19,8 @@ export default class InventoryWebPart extends BaseClientSideWebPart<IInventoryWe
       context: this.context,
       spHttpClient: this.context.spHttpClient,
       siteUrl: this.context.pageContext.web.absoluteUrl,
-      inventoryListName: "InventoryItems", // Add this
-      transactionListName: "InventoryTransaction", // Add this
+      inventoryItemsListName: this.properties.inventoryItemsListName, // Add this line
+      inventoryTransactionListName: this.properties.inventoryTransactionListName // Add this line
     });
 
     ReactDom.render(element, this.domElement);
@@ -46,6 +48,14 @@ export default class InventoryWebPart extends BaseClientSideWebPart<IInventoryWe
                 PropertyPaneTextField('description', {
                   label: strings.DescriptionFieldLabel,
                 }),
+                PropertyPaneTextField('inventoryItemsListName', {
+                  label: 'Inventory Items List Name',
+                  value: 'InventoryItems' // Set default value
+                }),
+                PropertyPaneTextField('inventoryTransactionListName', {
+                  label: 'Inventory Transaction List Name',
+                  value: 'InventoryTransaction' // Set default value
+                })
               ],
             },
           ],
