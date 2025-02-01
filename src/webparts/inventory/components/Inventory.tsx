@@ -124,6 +124,29 @@ export default class Inventory extends React.Component<
       return 0;
     }
   };
+  private getItemTitle = async (itemId: number): Promise<string> => {
+    const { spHttpClient, siteUrl } = this.props;
+
+    const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryItems')/items(${itemId})?$select=Title`;
+
+    try {
+      const response = await spHttpClient.get(
+        url,
+        SPHttpClient.configurations.v1
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Error fetching item title: ${error.error.message}`);
+      }
+
+      const data = await response.json();
+      return data.Title;
+    } catch (error) {
+      console.error("Error fetching item title:", error);
+      return "";
+    }
+  };
 
   private handleSubmit = async () => {
     const { context, siteUrl, transactionListName } = this.props;
@@ -140,30 +163,34 @@ export default class Inventory extends React.Component<
         digestData.d.GetContextWebInformation.FormDigestValue;
 
       // Create an array of fetch requests
-      const requests = rows.map((row) => {
-        const item = {
-          __metadata: { type: "SP.Data.InventoryTransactionListItem" },
-          FormNumber: formNumber,
-          ItemNameId: row.itemId, // Use the ID of the selected item for the lookup column
-          Quantity: row.quantity,
-          Notes: row.notes,
-          TransactionType: transactionType,
-          TransactionDate: transactionDate,
-        };
+      const requests = await Promise.all(
+        rows.map(async (row) => {
+          const itemTitle = await this.getItemTitle(row.itemId);
+          const item = {
+            __metadata: { type: "SP.Data.InventoryTransactionListItem" },
+            FormNumber: formNumber,
+            ItemNameId: row.itemId, // Use the ID of the selected item for the lookup column
+            Title: itemTitle,
+            Quantity: row.quantity,
+            Notes: row.notes,
+            TransactionType: transactionType,
+            TransactionDate: transactionDate,
+          };
 
-        return fetch(
-          `${siteUrl}/_api/web/lists/getbytitle('${transactionListName}')/items`,
-          {
-            method: "POST",
-            headers: {
-              Accept: "application/json;odata=verbose",
-              "Content-Type": "application/json;odata=verbose",
-              "X-RequestDigest": requestDigest,
-            },
-            body: JSON.stringify(item),
-          }
-        );
-      });
+          return fetch(
+            `${siteUrl}/_api/web/lists/getbytitle('${transactionListName}')/items`,
+            {
+              method: "POST",
+              headers: {
+                Accept: "application/json;odata=verbose",
+                "Content-Type": "application/json;odata=verbose",
+                "X-RequestDigest": requestDigest,
+              },
+              body: JSON.stringify(item),
+            }
+          );
+        })
+      );
 
       // Execute all requests concurrently
       const responses = await Promise.all(requests);
