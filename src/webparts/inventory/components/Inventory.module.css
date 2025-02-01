@@ -112,3 +112,43 @@
 .required {
   color: red;
 }
+
+/* Custom styles for the inventory table
+.inventory-table .quantity-cell {
+  min-width: calc(100% / 3);
+  Adjust the width to 1/3 of the current size
+}
+
+.inventory-table .item-dropdown-cell {
+  min-width: calc(100% * 3 / 2);
+  Adjust the width to 3/2 of the current size
+}
+
+.inventory-table .height-adjust {
+  height: auto;
+   Ensure the height matches that of the dropdown and buttons
+} */
+ /* Custom styles for the inventory table */
+.inventoryTable {
+  .quantityCell {
+    min-width: 50px; /* Adjust as needed for 1/3 of the current size */
+    max-width: 80px;
+  }
+
+  .itemDropdownCell {
+    min-width: 300px; /* Adjust as needed for 3/2 of the current size */
+    max-width: 400px;
+  }
+
+  .heightAdjust {
+    height: 40px; /* Adjust as needed to match the height of the dropdown and button */
+  }
+
+  input,
+  button,
+  .ms-Dropdown {
+    height: 100%; /* Ensure the height matches that of the dropdown and buttons */
+  }
+}
+
+
