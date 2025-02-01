@@ -28,7 +28,10 @@ export interface IInventoryState {
   isFormActive: boolean;
 }
 
-export default class Inventory extends React.Component<IInventoryProps, IInventoryState> {
+export default class Inventory extends React.Component<
+  IInventoryProps,
+  IInventoryState
+> {
   constructor(props: IInventoryProps) {
     super(props);
     this.state = {
@@ -98,11 +101,13 @@ export default class Inventory extends React.Component<IInventoryProps, IInvento
   private getLastFormNumber = async (): Promise<number> => {
     const { spHttpClient, siteUrl } = this.props;
 
-
     const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=FormNumber&$orderby=FormNumber desc&$top=1`;
 
     try {
-      const response = await spHttpClient.get(url, SPHttpClient.configurations.v1);
+      const response = await spHttpClient.get(
+        url,
+        SPHttpClient.configurations.v1
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -120,7 +125,7 @@ export default class Inventory extends React.Component<IInventoryProps, IInvento
     }
   };
 
-   private handleSubmit = async () => {
+  private handleSubmit = async () => {
     const { context, siteUrl, transactionListName } = this.props;
     const { rows, formNumber, transactionType, transactionDate } = this.state;
 
@@ -131,7 +136,8 @@ export default class Inventory extends React.Component<IInventoryProps, IInvento
         headers: { Accept: "application/json;odata=verbose" },
       });
       const digestData = await digestResponse.json();
-      const requestDigest = digestData.d.GetContextWebInformation.FormDigestValue;
+      const requestDigest =
+        digestData.d.GetContextWebInformation.FormDigestValue;
 
       // Create an array of fetch requests
       const requests = rows.map((row) => {
@@ -171,57 +177,36 @@ export default class Inventory extends React.Component<IInventoryProps, IInvento
       }
 
       console.log("All requests successful!");
+
+      // Reset the form
+      this.resetForm();
     } catch (error) {
       console.error("Error submitting transactions:", error);
     }
   };
 
-  // private handleSubmit = async () => {
-  //   const { context, siteUrl, transactionListName } = this.props;
-  //   const { rows, formNumber, transactionType, transactionDate } = this.state;
+  private resetForm = () => {
+    this.setState({
+      transactionType: "",
+      formNumber: null,
+      transactionDate: new Date().toISOString().substring(0, 10),
+      items: [],
+      rows: [],
+      isFormActive: false,
+      selectedItem: undefined,
+    });
+  };
 
-  //   try {
-  //     // Get request digest
-  //     const digestResponse = await fetch(`${siteUrl}/_api/contextinfo`, {
-  //       method: "POST",
-  //       headers: { Accept: "application/json;odata=verbose" },
-  //     });
-  //     const digestData = await digestResponse.json();
-  //     const requestDigest = digestData.d.GetContextWebInformation.FormDigestValue;
-
-  //     // Calculate current inventory for each item
-  //     const items = this.state.rows.map((row) => row.itemId);
-  //     const currentInventories = await Promise.all(items.map((itemId) => this.calculateCurrentInventory(itemId)));
-
-  //     // Update InventoryStatus column in InventoryTransaction list
-  //     const requests = currentInventories.map((currentInventory, index) => {
-  //       const itemId = items[index];
-  //       const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=InventoryStatus&$filter=ItemId eq ${itemId}`;
-  //       const body = JSON.stringify({ InventoryStatus: currentInventory });
-  //       return fetch(url, {
-  //         method: "POST",
-  //         headers: {
-  //           Accept: "application/json;odata=verbose",
-  //           "Content-Type": "application/json;odata=verbose",
-  //         },
-  //         body,
-  //       });
-  //     });
-
-  //     // Execute all requests concurrently
-  //     await Promise.all(requests);
-
-  //     console.log("All requests successful!");
-  //   } catch (error) {
-  //     console.error("Error submitting transactions:", error);
-  //   }
-  // };
-
-  private handleTransactionTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private handleTransactionTypeChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     this.setState({ transactionType: event.target.value });
   };
 
-  handleItemChange = (event: React.FormEvent<HTMLDivElement>, option: IDropdownOption | null): void => {
+  handleItemChange = (
+    event: React.FormEvent<HTMLDivElement>,
+    option: IDropdownOption | null
+  ): void => {
     console.log("Selected option:", option);
     this.setState({ selectedItem: option ? option.key : undefined });
   };
@@ -238,13 +223,18 @@ export default class Inventory extends React.Component<IInventoryProps, IInvento
     this.setState({ items });
   };
 
-  private calculateCurrentInventory = async (itemId: number): Promise<number> => {
+  private calculateCurrentInventory = async (
+    itemId: number
+  ): Promise<number> => {
     const { spHttpClient, siteUrl } = this.props;
 
     const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=Quantity&$filter=ItemId eq ${itemId}`;
 
     try {
-      const response = await spHttpClient.get(url, SPHttpClient.configurations.v1);
+      const response = await spHttpClient.get(
+        url,
+        SPHttpClient.configurations.v1
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -253,36 +243,20 @@ export default class Inventory extends React.Component<IInventoryProps, IInvento
 
       const data = await response.json();
 
-      return data.value.reduce((total: number, transaction: any) => total + transaction.Quantity, 0);
+      return data.value.reduce(
+        (total: number, transaction: any) => total + transaction.Quantity,
+        0
+      );
     } catch (error) {
       console.error("Error calculating current inventory:", error);
       return 0;
     }
   };
 
-  // private calculateCurrentInventory = async (itemId: number): Promise<number> => {
-  //   const { spHttpClient, siteUrl } = this.props;
-
-  //   const url = `${siteUrl}/_api/web/lists/GetByTitle('InventoryTransaction')/items?$select=Quantity&$filter=ItemId eq ${itemId}`;
-
-  //   try {
-  //     const response = await spHttpClient.get(url, SPHttpClient.configurations.v1);
-
-  //     if (!response.ok) {
-  //       const error = await response.json();
-  //       throw new Error(`Error: ${error.error.message}`);
-  //     }
-
-  //     const data = await response.json();
-
-  //     return data.value.reduce((total: number, transaction: any) => total + transaction.Quantity, 0);
-  //   } catch (error) {
-  //     console.error("Error calculating current inventory:", error);
-  //     return 0;
-  //   }
-  // };
-
-  private handleQuantity = (quantity: number, transactionType: string): number => {
+  private handleQuantity = (
+    quantity: number,
+    transactionType: string
+  ): number => {
     return transactionType === "Out" ? -Math.abs(quantity) : Math.abs(quantity);
   };
 
@@ -365,7 +339,9 @@ export default class Inventory extends React.Component<IInventoryProps, IInvento
                 value={new Date(transactionDate)}
                 onSelectDate={(date) =>
                   this.setState({
-                    transactionDate: date ? date.toISOString().substring(0, 10) : "",
+                    transactionDate: date
+                      ? date.toISOString().substring(0, 10)
+                      : "",
                   })
                 }
               />
