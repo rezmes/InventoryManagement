@@ -10,6 +10,7 @@ import { IInventoryProps } from "./IInventoryProps";
 import InventoryDropdown from "./InventoryDropdown";
 import { InventoryService } from "../services/InventoryService";
 import * as strings from "InventoryWebPartStrings"; // Import localized strings
+import styles from "./Inventory.module.scss";
 
 export interface InventoryItem {
   itemId: string;
@@ -232,11 +233,9 @@ export default class Inventory extends React.Component<
       formValid,
     } = this.state;
 
-    console.log("Rendering: Transaction Type:", transactionType);
-
     return (
       <div>
-        <h2>Inventory Management</h2>
+        <h2>{strings.InventoryManagement}</h2>
         {!isFormActive && (
           <div>
             <div>
@@ -248,7 +247,7 @@ export default class Inventory extends React.Component<
                   checked={transactionType === "In"}
                   onChange={this.handleTransactionTypeChange}
                 />
-                In
+                {strings.In}
               </label>
             </div>
             <div>
@@ -260,11 +259,11 @@ export default class Inventory extends React.Component<
                   checked={transactionType === "Out"}
                   onChange={this.handleTransactionTypeChange}
                 />
-                Out
+                {strings.Out}
               </label>
             </div>
             <PrimaryButton
-              text="Create Form"
+              text={strings.CreateForm}
               onClick={this.createForm}
               disabled={!transactionType}
             />
@@ -273,9 +272,11 @@ export default class Inventory extends React.Component<
 
         {isFormActive && (
           <div>
-            <h3>Form Number: {formNumber}</h3>
+            <h3>
+              {strings.FormNumber}: {formNumber}
+            </h3>
             <div>
-              <label>Date:</label>
+              <label>{strings.Date}:</label>
               <input
                 type="text"
                 value={transactionDate}
@@ -288,21 +289,23 @@ export default class Inventory extends React.Component<
               />
             </div>
             <div>
-              <label>Transaction Type: {transactionType}</label>
+              <label>
+                {strings.TransactionType}: {transactionType}
+              </label>
             </div>
-            <table className="inventory-table">
+            <table>
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th>Quantity</th>
-                  <th>Notes</th>
-                  <th>Actions</th>
+                  <th>{strings.Item}</th>
+                  <th>{strings.Quantity}</th>
+                  <th>{strings.Notes}</th>
+                  <th>{strings.Actions}</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, index) => (
                   <tr key={index}>
-                    <td className="item-dropdown-cell height-adjust">
+                    <td>
                       <InventoryDropdown
                         items={itemOptions}
                         selectedItem={row.itemId}
@@ -311,10 +314,10 @@ export default class Inventory extends React.Component<
                         }
                       />
                       {!row.itemId && (
-                        <span style={{ color: "red" }}>Required</span>
+                        <span style={{ color: "red" }}>{strings.Required}</span>
                       )}
                     </td>
-                    <td className="quantity-cell height-adjust">
+                    <td>
                       <input
                         type="number"
                         value={row.quantity.toString()}
@@ -328,7 +331,7 @@ export default class Inventory extends React.Component<
                         min="1"
                       />
                     </td>
-                    <td className="height-adjust">
+                    <td>
                       <input
                         type="text"
                         value={row.notes}
@@ -341,9 +344,9 @@ export default class Inventory extends React.Component<
                         }
                       />
                     </td>
-                    <td className="height-adjust">
+                    <td>
                       <PrimaryButton
-                        text="Remove"
+                        text={strings.Remove}
                         onClick={() => this.removeRow(index)}
                       />
                     </td>
@@ -351,13 +354,13 @@ export default class Inventory extends React.Component<
                 ))}
               </tbody>
             </table>
-            <PrimaryButton text="Add Row" onClick={this.addRow} />
+            <PrimaryButton text={strings.AddRow} onClick={this.addRow} />
             <PrimaryButton
-              text="Submit"
+              text={strings.Submit}
               onClick={this.handleSubmit}
               disabled={!formValid}
             />
-            <PrimaryButton text="Cancel" onClick={this.resetForm} />
+            <PrimaryButton text={strings.Cancel} onClick={this.resetForm} />
           </div>
         )}
       </div>
