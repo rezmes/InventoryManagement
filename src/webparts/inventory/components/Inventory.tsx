@@ -1,10 +1,11 @@
+// src\webparts\inventory\components\Inventory.tsx
 import * as React from "react";
 import {
   Dropdown,
   IDropdownOption,
   PrimaryButton,
 } from "office-ui-fabric-react";
-import { SPHttpClient } from "@microsoft/sp-http";
+
 import * as moment from "moment-jalaali";
 import { IInventoryProps } from "./IInventoryProps";
 import InventoryDropdown from "./InventoryDropdown";
@@ -20,12 +21,15 @@ export interface InventoryItem {
 
 export interface IInventoryState {
   itemOptions: IDropdownOption[];
+  mechanicDropdownOptions: IDropdownOption[]; // new property
   selectedItem: string | number | undefined;
   formNumber: number | null;
   transactionType: string;
   transactionDate: string;
   items: Array<{ itemId: number; quantity: number; notes: string }>;
-  rows: Array<{ itemId: number | null; quantity: number; notes: string }>;
+  rows: Array<{
+    issuedReturnedBy: string | number | null; itemId: number | null; quantity: number; notes: string 
+}>;
   inventoryItems: Array<{ key: number; text: string }>;
   isFormActive: boolean;
   formValid: boolean;
@@ -50,6 +54,7 @@ export default class Inventory extends React.Component<
       items: [],
       rows: [],
       inventoryItems: [],
+      mechanicDropdownOptions:[],
       itemOptions: [],
       isFormActive: false,
       selectedItem: undefined,
@@ -60,6 +65,7 @@ export default class Inventory extends React.Component<
   componentDidMount() {
     console.log("Component mounted, fetching inventory items...");
     this.fetchInventoryItems();
+    this.fetchMechanicPersonnel();
   }
 
   private fetchInventoryItems = async () => {
@@ -88,7 +94,7 @@ export default class Inventory extends React.Component<
       this.setState({
         formNumber: lastFormNumber + 1,
         isFormActive: true,
-        rows: [{ itemId: null, quantity: 1, notes: "" }], // Add an initial row
+        rows: [{ itemId: null, quantity: 1, notes: "", issuedReturnedBy: null }], 
       });
     } catch (error) {
       console.error("Error getting last form number:", error);
@@ -124,8 +130,20 @@ export default class Inventory extends React.Component<
             this.props.inventoryItemsListName,
             row.itemId!
           );
+          
           const quantity =
             transactionType === "Out" ? -Math.abs(row.quantity) : row.quantity;
+            const selectedOption = (function() {
+              let found = null;
+              for (let i = 0; i < this.state.mechanicDropdownOptions.length; i++) {
+                if (this.state.mechanicDropdownOptions[i].key === row.issuedReturnedBy) {
+                  found = this.state.mechanicDropdownOptions[i];
+                  break;
+                }
+              }
+              return found;
+            }).call(this);
+            const personnelText = selectedOption ? selectedOption.text : "";
           const item = {
             __metadata: {
               type: `SP.Data.${inventoryTransactionListName}ListItem`,
@@ -134,11 +152,14 @@ export default class Inventory extends React.Component<
             ItemNameId: row.itemId,
             Title: itemTitle,
             Quantity: quantity,
+            // IssuedReturnedBy: row.issuedReturnedBy, // new field for issued/returned person
+            IssuedReturnedBy: personnelText,
             Notes: row.notes,
             TransactionType: transactionType,
             TransactionDate: transactionDateISO,
           };
-
+    // Log the payload so you can see what is being submitted
+    console.log("Submitting payload:", JSON.stringify(item));
           return fetch(
             `${siteUrl}/_api/web/lists/getbytitle('${inventoryTransactionListName}')/items`,
             {
@@ -149,9 +170,13 @@ export default class Inventory extends React.Component<
                 "X-RequestDigest": requestDigest,
               },
               body: JSON.stringify(item),
+              
             }
+            
           );
+
         })
+        
       );
 
       const responses = await Promise.all(requests);
@@ -170,6 +195,25 @@ export default class Inventory extends React.Component<
       console.error("Error submitting transactions:", error);
     }
   };
+
+  private fetchMechanicPersonnel = async () => {
+    try {
+      // Use the service method with the list name and field name.
+      // Here, "MechanicPersonnel" is the title of the list and "LastNameFirstName" is the field to display.
+      const items = await this.inventoryService.getMechanicPersonnel("پرسنل معاونت مکانیک", "LastNameFirstName");
+      const options: IDropdownOption[] = items.map((item: any) => ({
+        key: item.Id,
+        text: item.LastNameFirstName
+      }));
+      console.log("Fetched mechanic personnel options:", options);
+      this.setState({ mechanicDropdownOptions: options });
+    } catch (error) {
+      console.error("Error fetching mechanic personnel:", error);
+      this.setState({ mechanicDropdownOptions: [] });
+    }
+  };
+  
+  
 
   private validateForm = (): boolean => {
     const { rows } = this.state;
@@ -295,14 +339,16 @@ export default class Inventory extends React.Component<
               </label>
             </div>
             <table>
-              <thead>
-                <tr>
-                  <th>{strings.Item}</th>
-                  <th>{strings.Quantity}</th>
-                  <th>{strings.Notes}</th>
-                  <th>{strings.Actions}</th>
-                </tr>
-              </thead>
+            <thead>
+  <tr>
+    <th>{strings.Item}</th>
+    <th>{strings.Quantity}</th>
+    <th>{strings.IssuedReturnedBy}</th> {/* You can use a label like "Issued/Returned By" */}
+    <th>{strings.Notes}</th>
+    <th>{strings.Actions}</th>
+  </tr>
+</thead>
+
               <tbody>
                 {rows.map((row, index) => (
                   <tr key={index}>
@@ -332,6 +378,16 @@ export default class Inventory extends React.Component<
                         min="1"
                       />
                     </td>
+                    <td>
+  <InventoryDropdown
+    items={this.state.mechanicDropdownOptions}
+    selectedItem={row.issuedReturnedBy}
+    onChange={(option) =>
+      this.handleRowChange(index, "issuedReturnedBy", option.key)
+    }
+    placeholder="انتخاب فرد"
+  />
+</td>
                     <td>
                       <input
                         type="text"

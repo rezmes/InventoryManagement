@@ -21,5 +21,6 @@ define([], function () {
     Cancel: "Cancel",
     Required: "Required",
     Remove: "Remove",
+    IssuedReturnedBy: "Issued/Returned By" // <-- Add this line
   };
 });

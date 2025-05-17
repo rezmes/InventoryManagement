@@ -1,3 +1,4 @@
+// src\webparts\inventory\services\InventoryService.ts
 import { SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
 
 export class InventoryService {
@@ -20,6 +21,43 @@ export class InventoryService {
     const data = await response.json();
     return data.value || [];
   }
+  // public async getMechanicPersonnel(listName: string, fieldName: string): Promise<any[]> {
+  //   const url = `${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=Id,${fieldName}`;
+  //   // const url = `http://intranet/pwa/manufacP/_api/web/lists/GetByTitle('${listName}')/items?$select=Id,${fieldName}`;
+  //   const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
+    
+  //   if (!response.ok) {
+  //     const error = await response.json();
+  //     throw new Error(`Error fetching mechanic personnel: ${error.error.message}`);
+  //   }
+    
+  //   const data = await response.json();
+  //   return data.value || [];
+  // }
+  
+  public async getMechanicPersonnel(listName: string, fieldName: string): Promise<any[]> {
+    // Extract the root URL dynamically
+    const urlObj = new URL(this.siteUrl);
+    const rootUrl = `${urlObj.protocol}//${urlObj.host}`; // This gives "http://<root>"
+  
+    // Append the hardcoded path
+    const targetSiteUrl = `${rootUrl}/pwa/manufacP`;
+  
+    // Build the REST API endpoint
+    const apiUrl = `${targetSiteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=Id,${fieldName}`;
+  
+    const response: SPHttpClientResponse = await this.spHttpClient.get(apiUrl, SPHttpClient.configurations.v1);
+  
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Error fetching mechanic personnel: ${error.error.message}`);
+    }
+  
+    const data = await response.json();
+    return data.value || [];
+  }
+  
+
 
   public async getLastFormNumber(listName: string): Promise<number> {
     const url = `${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=FormNumber&$orderby=FormNumber desc&$top=1`;

@@ -20,6 +20,7 @@ declare interface IInventoryWebPartStrings {
   Cancel: string;
   Required: string;
   Remove: string;
+  IssuedReturnedBy: string; // <-- Add this line
 }
 
 declare module 'InventoryWebPartStrings' {

@@ -21,5 +21,6 @@ define([], function () {
     Cancel: "لغو",
     Required: "ضروری",
     Remove: "حذف",
+    IssuedReturnedBy: "تحویل گیرنده/دهنده" // <-- Add this line
   };
 });
