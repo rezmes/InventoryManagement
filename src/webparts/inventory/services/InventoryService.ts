@@ -10,53 +10,67 @@ export class InventoryService {
     this.siteUrl = siteUrl;
   }
 
-  public async getInventoryItems(listName: string): Promise<any[]> {
-    const url = `${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=Title,ID`;
+  // public async getInventoryItems(listName: string): Promise<any[]> {
+  //   const url = `${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=Title,ID`;
 
-    const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Error fetching inventory items: ${error.error.message}`);
-    }
-    const data = await response.json();
-    return data.value || [];
-  }
+  //   const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
+  //   if (!response.ok) {
+  //     const error = await response.json();
+  //     throw new Error(`Error fetching inventory items: ${error.error.message}`);
+  //   }
+  //   const data = await response.json();
+  //   return data.value || [];
+  // }
   // public async getMechanicPersonnel(listName: string, fieldName: string): Promise<any[]> {
   //   const url = `${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=Id,${fieldName}`;
   //   // const url = `http://intranet/pwa/manufacP/_api/web/lists/GetByTitle('${listName}')/items?$select=Id,${fieldName}`;
   //   const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
-    
+
   //   if (!response.ok) {
   //     const error = await response.json();
   //     throw new Error(`Error fetching mechanic personnel: ${error.error.message}`);
   //   }
-    
+
   //   const data = await response.json();
   //   return data.value || [];
   // }
-  
+
+  // In InventoryService.ts
+public async getInventoryItems(listName: string): Promise<any[]> {
+  const url = `${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=Title,ID,AssetNumber`;
+
+  const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Error fetching inventory items: ${error.error.message}`);
+  }
+  const data = await response.json();
+  return data.value || [];
+}
+
+
   public async getMechanicPersonnel(listName: string, fieldName: string): Promise<any[]> {
     // Extract the root URL dynamically
     const urlObj = new URL(this.siteUrl);
     const rootUrl = `${urlObj.protocol}//${urlObj.host}`; // This gives "http://<root>"
-  
+
     // Append the hardcoded path
     const targetSiteUrl = `${rootUrl}/pwa/manufacP`;
-  
+
     // Build the REST API endpoint
     const apiUrl = `${targetSiteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=Id,${fieldName}`;
-  
+
     const response: SPHttpClientResponse = await this.spHttpClient.get(apiUrl, SPHttpClient.configurations.v1);
-  
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(`Error fetching mechanic personnel: ${error.error.message}`);
     }
-  
+
     const data = await response.json();
     return data.value || [];
   }
-  
+
 
 
   public async getLastFormNumber(listName: string): Promise<number> {

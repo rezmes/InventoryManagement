@@ -9,6 +9,7 @@ import {
 import * as moment from "moment-jalaali";
 import { IInventoryProps } from "./IInventoryProps";
 import InventoryDropdown from "./InventoryDropdown";
+import { IComboBoxOption } from "office-ui-fabric-react/lib/ComboBox";
 import { InventoryService } from "../services/InventoryService";
 import * as strings from "InventoryWebPartStrings"; // Import localized strings
 import styles from "./Inventory.module.scss";
@@ -20,7 +21,7 @@ export interface InventoryItem {
 }
 
 export interface IInventoryState {
-  itemOptions: IDropdownOption[];
+  itemOptions: IComboBoxOption[];
   mechanicDropdownOptions: IDropdownOption[]; // new property
   selectedItem: string | number | undefined;
   formNumber: number | null;
@@ -28,8 +29,11 @@ export interface IInventoryState {
   transactionDate: string;
   items: Array<{ itemId: number; quantity: number; notes: string }>;
   rows: Array<{
-    issuedReturnedBy: string | number | null; itemId: number | null; quantity: number; notes: string 
-}>;
+    issuedReturnedBy: string | number | null;
+    itemId: number | null;
+    quantity: number;
+    notes: string;
+  }>;
   inventoryItems: Array<{ key: number; text: string }>;
   isFormActive: boolean;
   formValid: boolean;
@@ -54,7 +58,7 @@ export default class Inventory extends React.Component<
       items: [],
       rows: [],
       inventoryItems: [],
-      mechanicDropdownOptions:[],
+      mechanicDropdownOptions: [],
       itemOptions: [],
       isFormActive: false,
       selectedItem: undefined,
@@ -68,6 +72,24 @@ export default class Inventory extends React.Component<
     this.fetchMechanicPersonnel();
   }
 
+  // private fetchInventoryItems = async () => {
+  //   const { inventoryItemsListName } = this.props;
+  //   try {
+  //     const items = await this.inventoryService.getInventoryItems(
+  //       inventoryItemsListName
+  //     );
+  //     const options: IComboBoxOption[] = items.map((item: any) => ({
+  //       key: item.ID,
+  //       text: item.Title,
+  //     }));
+  //     console.log("Fetched options:", options);
+  //     this.setState({ itemOptions: options });
+  //   } catch (error) {
+  //     console.error("Error fetching inventory items:", error);
+  //     this.setState({ itemOptions: [] });
+  //   }
+  // };
+
   private fetchInventoryItems = async () => {
     const { inventoryItemsListName } = this.props;
     try {
@@ -77,6 +99,7 @@ export default class Inventory extends React.Component<
       const options: IDropdownOption[] = items.map((item: any) => ({
         key: item.ID,
         text: item.Title,
+        data: { assetNumber: item.AssetNumber }, // Store AssetNumber in the data property
       }));
       console.log("Fetched options:", options);
       this.setState({ itemOptions: options });
@@ -94,7 +117,9 @@ export default class Inventory extends React.Component<
       this.setState({
         formNumber: lastFormNumber + 1,
         isFormActive: true,
-        rows: [{ itemId: null, quantity: 1, notes: "", issuedReturnedBy: null }], 
+        rows: [
+          { itemId: null, quantity: 1, notes: "", issuedReturnedBy: null },
+        ],
       });
     } catch (error) {
       console.error("Error getting last form number:", error);
@@ -130,20 +155,27 @@ export default class Inventory extends React.Component<
             this.props.inventoryItemsListName,
             row.itemId!
           );
-          
+
           const quantity =
             transactionType === "Out" ? -Math.abs(row.quantity) : row.quantity;
-            const selectedOption = (function() {
-              let found = null;
-              for (let i = 0; i < this.state.mechanicDropdownOptions.length; i++) {
-                if (this.state.mechanicDropdownOptions[i].key === row.issuedReturnedBy) {
-                  found = this.state.mechanicDropdownOptions[i];
-                  break;
-                }
+          const selectedOption = function () {
+            let found = null;
+            for (
+              let i = 0;
+              i < this.state.mechanicDropdownOptions.length;
+              i++
+            ) {
+              if (
+                this.state.mechanicDropdownOptions[i].key ===
+                row.issuedReturnedBy
+              ) {
+                found = this.state.mechanicDropdownOptions[i];
+                break;
               }
-              return found;
-            }).call(this);
-            const personnelText = selectedOption ? selectedOption.text : "";
+            }
+            return found;
+          }.call(this);
+          const personnelText = selectedOption ? selectedOption.text : "";
           const item = {
             __metadata: {
               type: `SP.Data.${inventoryTransactionListName}ListItem`,
@@ -158,8 +190,8 @@ export default class Inventory extends React.Component<
             TransactionType: transactionType,
             TransactionDate: transactionDateISO,
           };
-    // Log the payload so you can see what is being submitted
-    console.log("Submitting payload:", JSON.stringify(item));
+          // Log the payload so you can see what is being submitted
+          console.log("Submitting payload:", JSON.stringify(item));
           return fetch(
             `${siteUrl}/_api/web/lists/getbytitle('${inventoryTransactionListName}')/items`,
             {
@@ -170,13 +202,9 @@ export default class Inventory extends React.Component<
                 "X-RequestDigest": requestDigest,
               },
               body: JSON.stringify(item),
-              
             }
-            
           );
-
         })
-        
       );
 
       const responses = await Promise.all(requests);
@@ -198,12 +226,13 @@ export default class Inventory extends React.Component<
 
   private fetchMechanicPersonnel = async () => {
     try {
-      // Use the service method with the list name and field name.
-      // Here, "MechanicPersonnel" is the title of the list and "LastNameFirstName" is the field to display.
-      const items = await this.inventoryService.getMechanicPersonnel("پرسنل معاونت مکانیک", "LastNameFirstName");
-      const options: IDropdownOption[] = items.map((item: any) => ({
+      const items = await this.inventoryService.getMechanicPersonnel(
+        "پرسنل معاونت مکانیک",
+        "LastNameFirstName"
+      );
+      const options: IComboBoxOption[] = items.map((item: any) => ({
         key: item.Id,
-        text: item.LastNameFirstName
+        text: item.LastNameFirstName,
       }));
       console.log("Fetched mechanic personnel options:", options);
       this.setState({ mechanicDropdownOptions: options });
@@ -212,8 +241,6 @@ export default class Inventory extends React.Component<
       this.setState({ mechanicDropdownOptions: [] });
     }
   };
-  
-  
 
   private validateForm = (): boolean => {
     const { rows } = this.state;
@@ -276,7 +303,6 @@ export default class Inventory extends React.Component<
       rows,
       formValid,
     } = this.state;
-
     return (
       <div>
         <h2>{strings.InventoryManagement}</h2>
@@ -339,19 +365,39 @@ export default class Inventory extends React.Component<
               </label>
             </div>
             <table>
-            <thead>
-  <tr>
-    <th>{strings.Item}</th>
-    <th>{strings.Quantity}</th>
-    <th>{strings.IssuedReturnedBy}</th> {/* You can use a label like "Issued/Returned By" */}
-    <th>{strings.Notes}</th>
-    <th>{strings.Actions}</th>
-  </tr>
-</thead>
-
+              <thead>
+                <tr>
+                  <th>کد دارایی</th>
+                  <th>{strings.Item}</th>
+                  <th>{strings.Quantity}</th>
+                  <th>{strings.IssuedReturnedBy}</th>
+                  <th>{strings.Notes}</th>
+                  <th>{strings.Actions}</th>
+                </tr>
+              </thead>
               <tbody>
                 {rows.map((row, index) => (
                   <tr key={index}>
+                    <td>
+                      {/* Display the AssetNumber of the selected item */}
+                      {row.itemId &&
+                        function () {
+                          for (
+                            let i = 0;
+                            i < this.state.itemOptions.length;
+                            i++
+                          ) {
+                            if (this.state.itemOptions[i].key === row.itemId) {
+                              return (
+                                this.state.itemOptions[i].data &&
+                                this.state.itemOptions[i].data.assetNumber
+                              );
+                            }
+                          }
+                          return "";
+                        }.call(this)}
+                    </td>
+
                     <td>
                       <InventoryDropdown
                         items={itemOptions}
@@ -379,15 +425,19 @@ export default class Inventory extends React.Component<
                       />
                     </td>
                     <td>
-  <InventoryDropdown
-    items={this.state.mechanicDropdownOptions}
-    selectedItem={row.issuedReturnedBy}
-    onChange={(option) =>
-      this.handleRowChange(index, "issuedReturnedBy", option.key)
-    }
-    placeholder="انتخاب فرد"
-  />
-</td>
+                      <InventoryDropdown
+                        items={this.state.mechanicDropdownOptions}
+                        selectedItem={row.issuedReturnedBy}
+                        onChange={(option) =>
+                          this.handleRowChange(
+                            index,
+                            "issuedReturnedBy",
+                            option.key
+                          )
+                        }
+                        placeholder="انتخاب فرد"
+                      />
+                    </td>
                     <td>
                       <input
                         type="text"
@@ -411,6 +461,7 @@ export default class Inventory extends React.Component<
                 ))}
               </tbody>
             </table>
+
             <PrimaryButton text={strings.AddRow} onClick={this.addRow} />
             <PrimaryButton
               text={strings.Submit}
