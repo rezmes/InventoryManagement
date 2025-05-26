@@ -21,6 +21,7 @@ define([], function () {
     Cancel: "Cancel",
     Required: "Required",
     Remove: "Remove",
-    IssuedReturnedBy: "Issued/Returned By" // <-- Add this line
+    IssuedReturnedBy: "Issued/Returned By",// <-- Add this line
+    AssetNumber: "Asset Number" // Added for AssetNumber label
   };
 });

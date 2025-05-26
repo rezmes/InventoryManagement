@@ -1,4 +1,5 @@
 declare interface IInventoryWebPartStrings {
+  AssetNumber: ReactNode;
   PropertyPaneDescription: string;
   BasicGroupName: string;
   DescriptionFieldLabel: string;
@@ -21,6 +22,7 @@ declare interface IInventoryWebPartStrings {
   Required: string;
   Remove: string;
   IssuedReturnedBy: string; // <-- Add this line
+  AssetNumber: string; // Added for AssetNumber label
 }
 
 declare module 'InventoryWebPartStrings' {

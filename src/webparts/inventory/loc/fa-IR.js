@@ -21,6 +21,7 @@ define([], function () {
     Cancel: "لغو",
     Required: "ضروری",
     Remove: "حذف",
-    IssuedReturnedBy: "تحویل گیرنده/دهنده" // <-- Add this line
+    IssuedReturnedBy: "تحویل گیرنده/دهنده", // <-- Add this line
+    AssetNumber: "کد جمع‌داری" // Added for AssetNumber label
   };
 });

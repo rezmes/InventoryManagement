@@ -10,30 +10,6 @@ export class InventoryService {
     this.siteUrl = siteUrl;
   }
 
-  // public async getInventoryItems(listName: string): Promise<any[]> {
-  //   const url = `${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=Title,ID`;
-
-  //   const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
-  //   if (!response.ok) {
-  //     const error = await response.json();
-  //     throw new Error(`Error fetching inventory items: ${error.error.message}`);
-  //   }
-  //   const data = await response.json();
-  //   return data.value || [];
-  // }
-  // public async getMechanicPersonnel(listName: string, fieldName: string): Promise<any[]> {
-  //   const url = `${this.siteUrl}/_api/web/lists/GetByTitle('${listName}')/items?$select=Id,${fieldName}`;
-  //   // const url = `http://intranet/pwa/manufacP/_api/web/lists/GetByTitle('${listName}')/items?$select=Id,${fieldName}`;
-  //   const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
-
-  //   if (!response.ok) {
-  //     const error = await response.json();
-  //     throw new Error(`Error fetching mechanic personnel: ${error.error.message}`);
-  //   }
-
-  //   const data = await response.json();
-  //   return data.value || [];
-  // }
 
   // In InventoryService.ts
 public async getInventoryItems(listName: string): Promise<any[]> {
