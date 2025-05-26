@@ -3,7 +3,7 @@
   "id": "abb1caa8-effe-42f2-85e0-e14481706b1f",
   "alias": "InventoryWebPart",
   "componentType": "WebPart",
-  "version": "*",
+  "version": "1.0.0",
   "manifestVersion": 2,
   "requiresCustomScript": false,
   "preconfiguredEntries": [

@@ -2,6 +2,9 @@
 import { SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
 
 export class InventoryService {
+  getPersonnel(): { Id: string; Title: string; }[] | PromiseLike<{ Id: string; Title: string; }[]> {
+    throw new Error('Method not implemented.');
+  }
   private spHttpClient: SPHttpClient;
   private siteUrl: string;
 

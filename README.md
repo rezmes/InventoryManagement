@@ -1,3 +1,5 @@
+# SharePoint 2019
+
 ## inventory-management
 
 This is where you include your WebPart documentation.
@@ -25,7 +27,7 @@ gulp serve - TODO
 gulp bundle - TODO
 gulp package-solution - TODO
 
-# Context:  SharePoint 2019 - On-premises
+## Context:  SharePoint 2019 - On-premises
 
 dev.env. : `SPFx@1.4.1 ( node@8.17.0 , react@15.6.2, typescript@2.4.2 ,update and upgrade are not options)`
 *Exercise caution regarding versioning limitations and incompatibilities.*
@@ -940,7 +942,7 @@ public async getInventoryItems(listName: string): Promise<any[]> {
 }
 ```
 
-# Requests
+## Requests
 
 * The `handelSubmit()` should handle to submit the "AssetNumber" into "AssetNumber"(string) column of the `inventoryTransactionListName`.
 * The "AssetNumber" field should be a visible separate filed within the form and search-able similar to the "Items" field, and if the user chose an item from any of these two fields, the other one get filled automatically with the relevant data (which exist in its row).

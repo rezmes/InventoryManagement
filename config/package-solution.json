@@ -3,7 +3,7 @@
   "solution": {
     "name": "InventoryManagement-v3",
     "id": "f2bfe07a-4dda-48c0-89e9-0c99cbe014e9",
-    "version": "1.0.2.0",
+    "version": "1.0.3.0",
     "includeClientSideAssets": true
   },
   "paths": {

@@ -1,4 +1,5 @@
 declare interface IInventoryWebPartStrings {
+  InventoryItem: ReactNode;
   AssetNumber: ReactNode;
   PropertyPaneDescription: string;
   BasicGroupName: string;
